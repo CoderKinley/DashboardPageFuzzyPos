@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { Utils } from './utils/utils.js';
+import { Utils } from './utils.js';
 import { API } from './services/api.js';
 import { Charts } from './components/charts.js';
 import { UI } from './components/ui.js';
