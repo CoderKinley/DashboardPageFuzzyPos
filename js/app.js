@@ -136,7 +136,7 @@ const App = {
                 this.currentBillDetails = this.billDetailsCache.get(billNo);
             } else {
                 // Load details if not in cache
-                this.currentBillDetails = await API.getBillDetails(billNo);
+            this.currentBillDetails = await API.getBillDetails(billNo);
                 console.log('Bill Details Response:', this.currentBillDetails); // Add logging
                 // Store in cache
                 this.billDetailsCache.set(billNo, this.currentBillDetails);
@@ -222,29 +222,29 @@ const App = {
         }
     },
 
-    async deleteBill(billNo) {
-        try {
+async deleteBill(billNo) {
+    try {
             Utils.showConfirmDialog('Are you sure you want to delete this bill and all its details?', async () => {
-                try {
+            try {
                     // Delete the bill using fnb_bill_no
-                    await API.deleteBill(billNo);
+                await API.deleteBill(billNo);
                     
                     // Update the UI and cache
-                    this.bills = this.bills.filter(bill => bill.fnb_bill_no !== billNo);
+                this.bills = this.bills.filter(bill => bill.fnb_bill_no !== billNo);
                     this.clearBillDetailsCache(billNo);
-                    UI.renderBillSummary(this.bills);
-                    UI.showNotification('Bill deleted successfully', 'success');
+                UI.renderBillSummary(this.bills);
+                UI.showNotification('Bill deleted successfully', 'success');
                     
                     // If we're on the details page, go back to summary
                     if (!UI.elements.sections.summary.classList.contains('hidden')) {
                         UI.showSection('summary');
                     }
-                } catch (error) {
-                    console.error('Failed to delete bill:', error);
-                    UI.showNotification('Failed to delete bill: ' + error.message, 'error');
-                }
-            });
-        } catch (error) {
+            } catch (error) {
+                console.error('Failed to delete bill:', error);
+                UI.showNotification('Failed to delete bill: ' + error.message, 'error');
+            }
+        });
+    } catch (error) {
             console.error('Failed to show confirmation dialog:', error);
             UI.showNotification('Failed to show confirmation dialog', 'error');
         }
