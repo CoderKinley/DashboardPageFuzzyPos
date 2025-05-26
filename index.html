@@ -32,6 +32,10 @@
                         <i class="fas fa-chart-line"></i>
                         <span>Analytics</span>
                     </li>
+                    <li data-section="menu-items">
+                        <i class="fas fa-utensils"></i>
+                        <span>Menu Items</span>
+                    </li>
                 </ul>
             </nav>
         </aside>
@@ -66,6 +70,15 @@
                         <option value="pending">Pending</option>
                         <option value="cancelled">Cancelled</option>
                     </select>
+                    <div class="date-range">
+                        <input type="date" id="startDate" class="date-input">
+                        <span>to</span>
+                        <input type="date" id="endDate" class="date-input">
+                    </div>
+                    <button id="exportExcel" class="btn-primary">
+                        <i class="fas fa-file-excel"></i>
+                        Export to Excel
+                    </button>
                 </div>
 
                 <div class="table-container">
@@ -179,6 +192,36 @@
                 </div>
             </section>
 
+            <!-- Menu Items Section -->
+            <section id="menu-items-section" class="content-section hidden">
+                <div class="filters">
+                    <div class="search-box">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchMenuItem" placeholder="Search menu items...">
+                    </div>
+                    <button id="exportMenuItems" class="btn-primary">
+                        <i class="fas fa-file-excel"></i>
+                        Export to Excel
+                    </button>
+                </div>
+
+                <div class="table-container">
+                    <table id="menuItemsTable">
+                        <thead>
+                            <tr>
+                                <th>Menu Item</th>
+                                <th>Total Quantity Sold</th>
+                                <th>Total Revenue</th>
+                                <th>Average Price</th>
+                                <th>Last Sold Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Menu items data will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </main>
     </div>
 
@@ -215,18 +258,9 @@
                         <label for="total_amount">Total Amount</label>
                         <input type="number" id="total_amount" name="total_amount" min="0" step="0.01" required>
                     </div>
-                    <div class="form-group">
-                        <label for="payment_status">Payment Status</label>
-                        <select id="payment_status" name="payment_status" required>
-                            <option value="">Select Status</option>
-                            <option value="Paid">Paid</option>
-                            <option value="Pending">Pending</option>
-                            <option value="Cancelled">Cancelled</option>
-                        </select>
-                    </div>
                     <div class="form-actions">
-                        <button type="button" class="btn-secondary close-modal">Cancel</button>
-                        <button type="submit" class="btn-primary">Save</button>
+                        <button type="button" class="btn-secondary" onclick="UI.hideModal()">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Bill</button>
                     </div>
                 </form>
             </div>
@@ -234,6 +268,7 @@
     </div>
 
     <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/api.js"></script>

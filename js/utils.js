@@ -41,13 +41,23 @@ const Utils = {
                     <p>${message}</p>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
-                    <button class="btn-primary" onclick="this.closest('.modal').remove(); ${onConfirm}()">Confirm</button>
+                    <button class="btn-secondary cancel-btn">Cancel</button>
+                    <button class="btn-primary confirm-btn">Confirm</button>
                 </div>
             </div>
         `;
         
         document.body.appendChild(dialog);
+
+        // Add event listeners
+        const closeModal = () => dialog.remove();
+        
+        dialog.querySelector('.close-modal').addEventListener('click', closeModal);
+        dialog.querySelector('.cancel-btn').addEventListener('click', closeModal);
+        dialog.querySelector('.confirm-btn').addEventListener('click', () => {
+            closeModal();
+            onConfirm();
+        });
     },
 
     validateForm(formData) {

@@ -10,12 +10,16 @@ const UI = {
         billForm: document.getElementById('billForm'),
         searchBill: document.getElementById('searchBill'),
         filterStatus: document.getElementById('filterStatus'),
+        exportExcel: document.getElementById('exportExcel'),
+        startDate: document.getElementById('startDate'),
+        endDate: document.getElementById('endDate'),
         navLinks: document.querySelectorAll('.nav-links li'),
         currentSection: document.getElementById('currentSection'),
         sections: {
             summary: document.getElementById('summary-section'),
             details: document.getElementById('details-section'),
-            charts: document.getElementById('charts-section')
+            charts: document.getElementById('charts-section'),
+            menuItems: document.getElementById('menu-items-section')
         }
     },
 
@@ -24,6 +28,25 @@ const UI = {
         this.applyTheme();
         this.renderStaticUI();  // Render static UI immediately
         this.fetchData(); // Fetch data asynchronously
+
+        // Add event listeners for menu items section
+        const searchMenuItem = document.getElementById('searchMenuItem');
+        if (searchMenuItem) {
+            searchMenuItem.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const filteredItems = App.menuItemsData.filter(item => 
+                    item.name.toLowerCase().includes(searchTerm)
+                );
+                this.renderMenuItems(filteredItems);
+            });
+        }
+
+        const exportMenuItems = document.getElementById('exportMenuItems');
+        if (exportMenuItems) {
+            exportMenuItems.addEventListener('click', () => {
+                App.exportMenuItemsToExcel();
+            });
+        }
     },
 
     renderStaticUI() {
@@ -64,6 +87,7 @@ const UI = {
 
     renderBillSummary(bills) {
         const tbody = this.elements.billSummaryTable.querySelector('tbody');
+        // Use the bills array directly since it's already sorted from the API
         tbody.innerHTML = bills.map(bill => `
             <tr>
                 <td>${bill.fnb_bill_no}</td>
@@ -104,34 +128,49 @@ const UI = {
             section.classList.add('hidden');
         });
 
-        // Remove active class from all nav links
-        this.elements.navLinks.forEach(link => {
-            link.classList.remove('active');
-        });
-
         // Show selected section
-        this.elements.sections[sectionName].classList.remove('hidden');
-
-        // Add active class to selected nav link
-        const activeLink = document.querySelector(`[data-section="${sectionName}"]`);
-        if (activeLink) {
-            activeLink.classList.add('active');
+        const selectedSection = this.elements.sections[sectionName];
+        if (selectedSection) {
+            selectedSection.classList.remove('hidden');
         }
 
-        // Update header title
-        this.elements.currentSection.textContent = this.getSectionTitle(sectionName);
+        // Update active nav link
+        document.querySelectorAll('.nav-links li').forEach(li => {
+            li.classList.remove('active');
+            if (li.dataset.section === sectionName) {
+                li.classList.add('active');
+            }
+        });
 
-        // Initialize charts if charts section is shown
+        // Update header title
+        const headerTitle = document.getElementById('currentSection');
+        if (headerTitle) {
+            headerTitle.textContent = this.getSectionTitle(sectionName);
+        }
+
+        // Load section-specific data
         if (sectionName === 'charts') {
-            Charts.initCharts(App.bills);
+            console.log('Loading charts section...');
+            App.loadBillDetailsForCharts();
+        } else if (sectionName === 'menu-items') {
+            console.log('Loading menu items section...');
+            // Show loading indicator
+            this.showLoadingIndicator('menu-items-section');
+            // Load menu items data
+            App.loadMenuItemsData().catch(error => {
+                console.error('Failed to load menu items:', error);
+                this.hideLoadingIndicator('menu-items-section');
+                this.renderMenuItems([]); // Show empty state
+            });
         }
     },
 
     getSectionTitle(sectionName) {
         const titles = {
-            summary: 'Bill Summary',
-            details: 'Bill Details',
-            charts: 'Analytics Dashboard'
+            'summary': 'Bill Summary',
+            'details': 'Bill Details',
+            'charts': 'Analytics',
+            'menu-items': 'Menu Items'
         };
         return titles[sectionName] || 'Dashboard';
     },
@@ -205,11 +244,253 @@ const UI = {
         // Search and Filter
         this.elements.searchBill.addEventListener('input', () => this.filterBills());
         this.elements.filterStatus.addEventListener('change', () => this.filterBills());
+
+        // Set default date range (last 30 days)
+        const today = new Date();
+        const thirtyDaysAgo = new Date(today);
+        thirtyDaysAgo.setDate(today.getDate() - 30);
+        
+        this.elements.startDate.value = thirtyDaysAgo.toISOString().split('T')[0];
+        this.elements.endDate.value = today.toISOString().split('T')[0];
+
+        // Export to Excel
+        this.elements.exportExcel.addEventListener('click', () => this.exportToExcel());
     },
 
     toggleSidebar() {
         this.elements.sidebar.classList.toggle('expanded');
         this.elements.mainContent.classList.toggle('sidebar-expanded');
+    },
+
+    renderBillDetails(billDetails) {
+        // Update bill information
+        const bill = App.currentBill;
+        document.getElementById('detailBillNo').textContent = bill.fnb_bill_no;
+        document.getElementById('detailDate').textContent = Utils.formatDate(bill.date);
+        document.getElementById('detailTime').textContent = Utils.formatTime(bill.time);
+        document.getElementById('detailTable').textContent = bill.table_no;
+        document.getElementById('detailPax').textContent = bill.pax;
+        document.getElementById('detailStatus').textContent = bill.payment_status;
+
+        // Update bill details table
+        const tbody = this.elements.billDetailsTable.querySelector('tbody');
+        tbody.innerHTML = billDetails.map(detail => `
+            <tr>
+                <td>${detail.menu_name || '-'}</td>
+                <td>${Utils.formatCurrency(detail.rate)}</td>
+                <td>${detail.quanity || '-'}</td>
+                <td>${Utils.formatCurrency(detail.amount)}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button onclick="App.editBillDetail('${detail.fnb_bill_no}')" class="btn-secondary">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button onclick="App.deleteBillDetail('${detail.fnb_bill_no}')" class="btn-secondary">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+    },
+
+    async exportToExcel() {
+        try {
+            const startDate = this.elements.startDate.value;
+            const endDate = this.elements.endDate.value;
+
+            if (!startDate || !endDate) {
+                Utils.showNotification('Please select both start and end dates', 'error');
+                return;
+            }
+
+            // Get the current filtered bills within date range
+            const searchTerm = this.elements.searchBill.value.toLowerCase();
+            const statusFilter = this.elements.filterStatus.value.toLowerCase();
+            
+            const filteredBills = App.bills.filter(bill => {
+                // Convert bill date from DD-MM-YYYY to YYYY-MM-DD for comparison
+                const [day, month, year] = bill.date.split('-');
+                const billDate = `${year}-${month}-${day}`;
+                
+                const matchesDate = billDate >= startDate && billDate <= endDate;
+                const matchesSearch = 
+                    bill.fnb_bill_no.toLowerCase().includes(searchTerm) ||
+                    bill.table_no.toLowerCase().includes(searchTerm);
+                const matchesStatus = !statusFilter || bill.payment_status.toLowerCase() === statusFilter;
+                
+                return matchesDate && matchesSearch && matchesStatus;
+            });
+
+            if (filteredBills.length === 0) {
+                Utils.showNotification('No bills found in the selected date range', 'error');
+                return;
+            }
+
+            // Show loading notification
+            Utils.showNotification('Preparing export...', 'info');
+
+            try {
+                // Load bill details for export
+                const billsWithDetails = await App.loadBillDetailsForExport(filteredBills);
+
+                // Create workbook
+                const wb = XLSX.utils.book_new();
+                
+                // Prepare summary data
+                const summaryData = billsWithDetails.map(bill => ({
+                    'Bill No': bill.fnb_bill_no,
+                    'Date': Utils.formatDate(bill.date),
+                    'Time': Utils.formatTime(bill.time),
+                    'Table No': bill.table_no,
+                    'Pax': bill.pax,
+                    'Total Amount': bill.total_amount,
+                    'Payment Status': bill.payment_status
+                }));
+
+                // Create summary worksheet
+                const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+                XLSX.utils.book_append_sheet(wb, wsSummary, 'Bill Summary');
+
+                // Prepare details data - simplified to menu_name × quantity
+                const detailsData = [];
+                for (const bill of billsWithDetails) {
+                    if (bill.details) {
+                        bill.details.forEach(detail => {
+                            detailsData.push({
+                                'Bill No': bill.fnb_bill_no,
+                                'Date': Utils.formatDate(bill.date),
+                                'Menu Item': detail.menu_name,
+                                'Quantity': detail.quanity,
+                                'Total': `${detail.menu_name} × ${detail.quanity}`
+                            });
+                        });
+                    }
+                }
+
+                // Create details worksheet
+                const wsDetails = XLSX.utils.json_to_sheet(detailsData);
+                XLSX.utils.book_append_sheet(wb, wsDetails, 'Bill Details');
+
+                // Generate Excel file with date range in filename
+                const fileName = `bill_report_${startDate}_to_${endDate}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+
+                Utils.showNotification('Excel file exported successfully', 'success');
+            } catch (error) {
+                console.error('Error during export process:', error);
+                Utils.showNotification('Failed to prepare export data: ' + error.message, 'error');
+            }
+        } catch (error) {
+            console.error('Failed to export to Excel:', error);
+            Utils.showNotification('Failed to export to Excel: ' + error.message, 'error');
+        }
+    },
+
+    renderMenuItems(items) {
+        console.log('Rendering menu items:', items);
+        
+        // Get the table container and ensure it's visible
+        const section = document.getElementById('menu-items-section');
+        if (!section) {
+            console.error('Menu items section not found!');
+            return;
+        }
+        section.classList.remove('hidden');
+
+        // Get the table body
+        const tbody = document.querySelector('#menuItemsTable tbody');
+        if (!tbody) {
+            console.error('Menu items table body not found!');
+            return;
+        }
+
+        // Show loading state if no items
+        if (!items || items.length === 0) {
+            console.log('No items to render, showing empty state');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center" style="padding: 20px;">
+                        <div style="color: #666; font-size: 16px;">
+                            <i class="fas fa-utensils" style="font-size: 24px; margin-bottom: 10px;"></i>
+                            <p>No menu items data available</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        // Render the items
+        tbody.innerHTML = items.map(item => `
+            <tr>
+                <td style="font-weight: 500;">${item.name || '-'}</td>
+                <td class="text-right" style="font-family: monospace;">${item.totalQuantity || 0}</td>
+                <td class="text-right" style="font-family: monospace;">${Utils.formatCurrency(item.totalRevenue || 0)}</td>
+                <td class="text-right" style="font-family: monospace;">${Utils.formatCurrency(item.averagePrice || 0)}</td>
+                <td>${item.lastSoldDate ? Utils.formatDate(item.lastSoldDate) : '-'}</td>
+            </tr>
+        `).join('');
+
+        // Add total row
+        const totalQuantity = items.reduce((sum, item) => sum + (item.totalQuantity || 0), 0);
+        const totalRevenue = items.reduce((sum, item) => sum + (item.totalRevenue || 0), 0);
+        
+        tbody.innerHTML += `
+            <tr style="background-color: #f8f9fa; font-weight: bold;">
+                <td>Total</td>
+                <td class="text-right" style="font-family: monospace;">${totalQuantity}</td>
+                <td class="text-right" style="font-family: monospace;">${Utils.formatCurrency(totalRevenue)}</td>
+                <td class="text-right">-</td>
+                <td>-</td>
+            </tr>
+        `;
+    },
+
+    showLoadingIndicator(sectionId) {
+        console.log('Showing loading indicator for section:', sectionId);
+        const section = document.getElementById(sectionId);
+        if (!section) {
+            console.error('Section not found:', sectionId);
+            return;
+        }
+
+        // Remove any existing loading indicator
+        this.hideLoadingIndicator(sectionId);
+
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading-overlay';
+        loadingDiv.style.position = 'absolute';
+        loadingDiv.style.top = '0';
+        loadingDiv.style.left = '0';
+        loadingDiv.style.right = '0';
+        loadingDiv.style.bottom = '0';
+        loadingDiv.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+        loadingDiv.style.display = 'flex';
+        loadingDiv.style.flexDirection = 'column';
+        loadingDiv.style.alignItems = 'center';
+        loadingDiv.style.justifyContent = 'center';
+        loadingDiv.style.zIndex = '1000';
+        loadingDiv.innerHTML = `
+            <div class="spinner" style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <p style="margin-top: 10px; color: #333; font-size: 16px;">Loading menu items data...</p>
+        `;
+        section.style.position = 'relative';
+        section.appendChild(loadingDiv);
+    },
+
+    hideLoadingIndicator(sectionId) {
+        console.log('Hiding loading indicator for section:', sectionId);
+        const section = document.getElementById(sectionId);
+        if (!section) {
+            console.error('Section not found:', sectionId);
+            return;
+        }
+
+        const loadingDiv = section.querySelector('.loading-overlay');
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
     }
 };
 

@@ -5,7 +5,14 @@ const API = {
             if (!response.ok) {
                 throw new Error('Failed to fetch bills');
             }
-            return await response.json();
+            const bills = await response.json();
+            
+            // Sort bills by date and time in ascending order and reverse to get newest first
+            return bills.sort((a, b) => {
+                const dateA = new Date(`${a.date}T${a.time}`);
+                const dateB = new Date(`${b.date}T${b.time}`);
+                return dateA - dateB; // Ascending order
+            }).reverse(); // Reverse to get newest first
         } catch (error) {
             Utils.showNotification(error.message, 'error');
             throw error;
@@ -14,13 +21,18 @@ const API = {
 
     async getBillDetails(billNo) {
         try {
-            const response = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.ENDPOINTS.BILL_DETAILS}/${billNo}`);
+            console.log('Fetching details for bill:', billNo);
+            const response = await fetch(`${CONFIG.API.BASE_URL}/fnb_bill_details_legphel_eats/${billNo}`);
+            
             if (!response.ok) {
-                throw new Error('Failed to fetch bill details');
+                throw new Error(`Failed to fetch bill details: ${response.status}`);
             }
-            return await response.json();
+            
+            const details = await response.json();
+            console.log('Received bill details:', details);
+            return details;
         } catch (error) {
-            Utils.showNotification(error.message, 'error');
+            console.error('Error fetching bill details:', error);
             throw error;
         }
     },
@@ -71,20 +83,22 @@ const API = {
         }
     },
 
-    async deleteBill(billNo) {
+    async deleteBill(fnb_bill_no) {
         try {
-            const response = await fetch(`${CONFIG.API.BASE_URL}${CONFIG.API.ENDPOINTS.BILLS}/${billNo}`, {
-                method: 'DELETE'
+            const response = await fetch(`${CONFIG.API.BASE_URL}/fnb_bill_summary_legphel_eats/${fnb_bill_no}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
             });
-            
+
             if (!response.ok) {
-                throw new Error('Failed to delete bill');
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
-            Utils.showNotification('Bill deleted successfully');
-            return true;
+
+            return await response.json();
         } catch (error) {
-            Utils.showNotification(error.message, 'error');
+            console.error('Error deleting bill:', error);
             throw error;
         }
     },
