@@ -250,6 +250,25 @@ const App = {
         }
     },
 
+    // Add this new method for caching
+    async cacheBillDetails(bills) {
+        const uncachedBills = bills.filter(bill => !this.billDetailsCache.has(bill.fnb_bill_no));
+        if (uncachedBills.length === 0) return;
+
+        // Load all uncached bills in parallel
+        await Promise.all(
+            uncachedBills.map(async (bill) => {
+                try {
+                    const details = await API.getBillDetails(bill.fnb_bill_no);
+                    this.billDetailsCache.set(bill.fnb_bill_no, details);
+                } catch (error) {
+                    console.error(`Failed to cache bill ${bill.fnb_bill_no}:`, error);
+                    this.billDetailsCache.set(bill.fnb_bill_no, []);
+                }
+            })
+        );
+    },
+
     async loadMenuItemsData() {
         try {
             console.log('Loading menu items data...');
@@ -261,66 +280,64 @@ const App = {
                 return this.menuItemsData;
             }
 
+            // Show loading indicator immediately
+            UI.showLoadingIndicator('menu-items-section');
+
             // Get all bills first
             const bills = await API.getBills();
             console.log('Total bills:', bills.length);
 
-            // Get details for each bill
+            // Get only the most recent bills for initial load (last 30 days)
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            
+            const recentBills = bills.filter(bill => {
+                const billDate = new Date(bill.date);
+                return billDate >= thirtyDaysAgo;
+            });
+
+            console.log('Processing recent bills:', recentBills.length);
+
+            // Cache bill details in parallel
+            await this.cacheBillDetails(recentBills);
+
+            // Process all bills at once using cached data
             const menuItemsMap = new Map();
+            
+            // Process all bills in a single pass
+            recentBills.forEach(bill => {
+                const details = this.billDetailsCache.get(bill.fnb_bill_no) || [];
+                
+                details.forEach(detail => {
+                    if (!detail.menu_name) return;
 
-            // Process bills in larger batches for faster loading
-            const batchSize = 10; // Increased batch size
-            for (let i = 0; i < bills.length; i += batchSize) {
-                const batch = bills.slice(i, i + batchSize);
-                await Promise.all(
-                    batch.map(async (bill) => {
-                        try {
-                            // Check cache first
-                            let details;
-                            if (this.billDetailsCache.has(bill.fnb_bill_no)) {
-                                details = this.billDetailsCache.get(bill.fnb_bill_no);
-                            } else {
-                                details = await API.getBillDetails(bill.fnb_bill_no);
-                                this.billDetailsCache.set(bill.fnb_bill_no, details);
-                            }
+                    const existingItem = menuItemsMap.get(detail.menu_name) || {
+                        name: detail.menu_name,
+                        totalQuantity: 0,
+                        totalRevenue: 0,
+                        lastSoldDate: null
+                    };
 
-                            // Process each detail
-                            for (const detail of details) {
-                                if (!detail.menu_name) continue;
+                    // Update statistics
+                    existingItem.totalQuantity += parseInt(detail.quanity || 0);
+                    existingItem.totalRevenue += parseFloat(detail.amount || 0);
+                    
+                    // Update last sold date
+                    if (!existingItem.lastSoldDate || bill.date > existingItem.lastSoldDate) {
+                        existingItem.lastSoldDate = bill.date;
+                    }
 
-                                const existingItem = menuItemsMap.get(detail.menu_name) || {
-                                    name: detail.menu_name,
-                                    totalQuantity: 0,
-                                    totalRevenue: 0,
-                                    lastSoldDate: null
-                                };
+                    menuItemsMap.set(detail.menu_name, existingItem);
+                });
+            });
 
-                                // Update statistics
-                                existingItem.totalQuantity += parseInt(detail.quanity || 0);
-                                existingItem.totalRevenue += parseFloat(detail.amount || 0);
-                                
-                                // Update last sold date
-                                if (!existingItem.lastSoldDate || bill.date > existingItem.lastSoldDate) {
-                                    existingItem.lastSoldDate = bill.date;
-                                }
-
-                                menuItemsMap.set(detail.menu_name, existingItem);
-                            }
-                        } catch (error) {
-                            console.error(`Error processing bill ${bill.fnb_bill_no}:`, error);
-                        }
-                    })
-                );
-            }
-
-            // Convert to array and calculate averages
-            const menuItemsData = Array.from(menuItemsMap.values()).map(item => ({
-                ...item,
-                averagePrice: item.totalQuantity > 0 ? item.totalRevenue / item.totalQuantity : 0
-            }));
-
-            // Sort by quantity sold
-            menuItemsData.sort((a, b) => b.totalQuantity - a.totalQuantity);
+            // Convert to array and calculate averages in a single pass
+            const menuItemsData = Array.from(menuItemsMap.values())
+                .map(item => ({
+                    ...item,
+                    averagePrice: item.totalQuantity > 0 ? item.totalRevenue / item.totalQuantity : 0
+                }))
+                .sort((a, b) => b.totalQuantity - a.totalQuantity);
 
             console.log('Menu items processed:', menuItemsData.length);
             
@@ -329,6 +346,13 @@ const App = {
             UI.renderMenuItems(menuItemsData);
             UI.hideLoadingIndicator('menu-items-section');
 
+            // Load remaining bills in the background
+            const remainingBills = bills.filter(bill => !recentBills.includes(bill));
+            if (remainingBills.length > 0) {
+                console.log('Loading remaining bills in background:', remainingBills.length);
+                this.loadRemainingBills(remainingBills, menuItemsMap);
+            }
+
             return menuItemsData;
         } catch (error) {
             console.error('Error in loadMenuItemsData:', error);
@@ -336,6 +360,49 @@ const App = {
             UI.hideLoadingIndicator('menu-items-section');
             UI.renderMenuItems([]);
             throw error;
+        }
+    },
+
+    async loadRemainingBills(bills, menuItemsMap) {
+        try {
+            await this.cacheBillDetails(bills);
+            
+            bills.forEach(bill => {
+                const details = this.billDetailsCache.get(bill.fnb_bill_no) || [];
+                
+                details.forEach(detail => {
+                    if (!detail.menu_name) return;
+
+                    const existingItem = menuItemsMap.get(detail.menu_name) || {
+                        name: detail.menu_name,
+                        totalQuantity: 0,
+                        totalRevenue: 0,
+                        lastSoldDate: null
+                    };
+
+                    existingItem.totalQuantity += parseInt(detail.quanity || 0);
+                    existingItem.totalRevenue += parseFloat(detail.amount || 0);
+                    
+                    if (!existingItem.lastSoldDate || bill.date > existingItem.lastSoldDate) {
+                        existingItem.lastSoldDate = bill.date;
+                    }
+
+                    menuItemsMap.set(detail.menu_name, existingItem);
+                });
+            });
+
+            // Update the data with complete information
+            const completeMenuItemsData = Array.from(menuItemsMap.values())
+                .map(item => ({
+                    ...item,
+                    averagePrice: item.totalQuantity > 0 ? item.totalRevenue / item.totalQuantity : 0
+                }))
+                .sort((a, b) => b.totalQuantity - a.totalQuantity);
+
+            this.menuItemsData = completeMenuItemsData;
+            UI.renderMenuItems(completeMenuItemsData);
+        } catch (error) {
+            console.error('Error loading remaining bills:', error);
         }
     },
 

@@ -691,89 +691,165 @@ th {
 /* Menu Items Table Styles */
 #menuItemsTable {
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 1rem;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 1rem 0;
     background: var(--background-color);
     box-shadow: 0 1px 3px var(--shadow-color);
+    border-radius: 8px;
+    overflow: hidden;
+    table-layout: fixed;
 }
 
 #menuItemsTable th {
     background: var(--secondary-color);
-    padding: 12px;
+    padding: 16px 20px;
     text-align: left;
     font-weight: 600;
     color: var(--text-color);
     border-bottom: 2px solid var(--border-color);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
 }
 
 #menuItemsTable td {
-    padding: 12px;
+    padding: 14px 20px;
     border-bottom: 1px solid var(--border-color);
     vertical-align: middle;
     color: var(--text-color);
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Column widths */
+#menuItemsTable th:nth-child(1),
+#menuItemsTable td:nth-child(1) {
+    width: 35%;
+    min-width: 200px;
+    padding-left: 20px;
+}
+
+#menuItemsTable th:nth-child(2),
+#menuItemsTable td:nth-child(2) {
+    width: 15%;
+    text-align: right;
+    padding-right: 20px;
+}
+
+#menuItemsTable th:nth-child(3),
+#menuItemsTable td:nth-child(3) {
+    width: 20%;
+    text-align: right;
+    padding-right: 20px;
+}
+
+#menuItemsTable th:nth-child(4),
+#menuItemsTable td:nth-child(4) {
+    width: 15%;
+    text-align: right;
+    padding-right: 20px;
+}
+
+#menuItemsTable th:nth-child(5),
+#menuItemsTable td:nth-child(5) {
+    width: 15%;
+    text-align: left;
+    padding-right: 20px;
+}
+
+#menuItemsTable tr:last-child td {
+    border-bottom: none;
 }
 
 #menuItemsTable tr:hover {
     background-color: var(--hover-color);
 }
 
-#menuItemsTable .text-right {
+/* Menu item name column */
+#menuItemsTable td:first-child {
+    font-weight: 500;
+    color: var(--text-color);
+    text-align: left;
+}
+
+/* Numeric columns */
+#menuItemsTable td:nth-child(2),
+#menuItemsTable td:nth-child(3),
+#menuItemsTable td:nth-child(4) {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 13px;
+    white-space: nowrap;
     text-align: right;
 }
 
-/* Dark mode adjustments */
-[data-theme="dark"] #menuItemsTable {
-    background: var(--background-color);
-    box-shadow: 0 1px 3px var(--shadow-color);
-}
-
-[data-theme="dark"] #menuItemsTable th {
-    background: var(--secondary-color);
+/* Date column */
+#menuItemsTable td:last-child {
     color: var(--text-color);
-    border-bottom-color: var(--border-color);
-}
-
-[data-theme="dark"] #menuItemsTable td {
-    border-bottom-color: var(--border-color);
-    color: var(--text-color);
-}
-
-[data-theme="dark"] #menuItemsTable tr:hover {
-    background-color: var(--hover-color);
-}
-
-/* Loading overlay */
-.loading-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--background-color);
     opacity: 0.9;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
+    white-space: nowrap;
+    text-align: left;
 }
 
-.loading-overlay p {
-    margin-top: 10px;
+/* Total row */
+#menuItemsTable tr:last-child {
+    background-color: var(--secondary-color);
+}
+
+#menuItemsTable tr:last-child td {
+    font-weight: 600;
+    font-size: 13px;
+    padding: 16px 20px;
+}
+
+/* Loading state */
+#menuItemsTable .loading-state {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+#menuItemsTable .loading-state .spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-color);
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto;
+}
+
+#menuItemsTable .loading-state p {
+    margin-top: 12px;
     color: var(--text-color);
     font-size: 14px;
+    font-weight: 500;
 }
 
-/* Responsive table */
+/* Table container */
+.table-container {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+/* Responsive adjustments */
 @media (max-width: 768px) {
+    .table-container {
+        padding: 0;
+    }
+    
     #menuItemsTable {
         display: block;
         overflow-x: auto;
         white-space: nowrap;
+        border-radius: 4px;
     }
     
     #menuItemsTable th,
     #menuItemsTable td {
-        padding: 8px;
+        padding: 12px 16px;
     }
 }

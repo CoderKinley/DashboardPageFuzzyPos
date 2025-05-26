@@ -387,6 +387,41 @@ const UI = {
         }
     },
 
+    showLoadingIndicator(sectionId) {
+        console.log('Showing loading indicator for section:', sectionId);
+        const section = document.getElementById(sectionId);
+        if (!section) {
+            console.error('Section not found:', sectionId);
+            return;
+        }
+
+        // Remove any existing loading indicator
+        this.hideLoadingIndicator(sectionId);
+
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'loading-overlay';
+        loadingDiv.innerHTML = `
+            <div class="spinner" style="width: 40px; height: 40px; border: 4px solid var(--border-color); border-top: 4px solid var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <p style="margin-top: 10px; color: var(--text-color); font-size: 16px; font-weight: 500;">Loading data...</p>
+        `;
+        section.style.position = 'relative';
+        section.appendChild(loadingDiv);
+    },
+
+    hideLoadingIndicator(sectionId) {
+        console.log('Hiding loading indicator for section:', sectionId);
+        const section = document.getElementById(sectionId);
+        if (!section) {
+            console.error('Section not found:', sectionId);
+            return;
+        }
+
+        const loadingDiv = section.querySelector('.loading-overlay');
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
+    },
+
     renderMenuItems(items) {
         console.log('Rendering menu items:', items);
         
@@ -407,27 +442,25 @@ const UI = {
 
         // Show loading state if no items
         if (!items || items.length === 0) {
-            console.log('No items to render, showing empty state');
+            console.log('No items to render, showing loading state');
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="text-center" style="padding: 20px;">
-                        <div style="color: #666; font-size: 16px;">
-                            <i class="fas fa-utensils" style="font-size: 24px; margin-bottom: 10px;"></i>
-                            <p>No menu items data available</p>
-                        </div>
+                    <td colspan="5" class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading menu items...</p>
                     </td>
                 </tr>
             `;
             return;
         }
 
-        // Render the items
-        tbody.innerHTML = items.map(item => `
+        // Render the items with a single template literal for better performance
+        const rows = items.map(item => `
             <tr>
-                <td style="font-weight: 500;">${item.name || '-'}</td>
-                <td class="text-right" style="font-family: monospace;">${item.totalQuantity || 0}</td>
-                <td class="text-right" style="font-family: monospace;">${Utils.formatCurrency(item.totalRevenue || 0)}</td>
-                <td class="text-right" style="font-family: monospace;">${Utils.formatCurrency(item.averagePrice || 0)}</td>
+                <td>${item.name || '-'}</td>
+                <td class="text-right">${item.totalQuantity || 0}</td>
+                <td class="text-right">${Utils.formatCurrency(item.totalRevenue || 0)}</td>
+                <td class="text-right">${Utils.formatCurrency(item.averagePrice || 0)}</td>
                 <td>${item.lastSoldDate ? Utils.formatDate(item.lastSoldDate) : '-'}</td>
             </tr>
         `).join('');
@@ -436,61 +469,15 @@ const UI = {
         const totalQuantity = items.reduce((sum, item) => sum + (item.totalQuantity || 0), 0);
         const totalRevenue = items.reduce((sum, item) => sum + (item.totalRevenue || 0), 0);
         
-        tbody.innerHTML += `
-            <tr style="background-color: #f8f9fa; font-weight: bold;">
+        tbody.innerHTML = rows + `
+            <tr>
                 <td>Total</td>
-                <td class="text-right" style="font-family: monospace;">${totalQuantity}</td>
-                <td class="text-right" style="font-family: monospace;">${Utils.formatCurrency(totalRevenue)}</td>
+                <td class="text-right">${totalQuantity}</td>
+                <td class="text-right">${Utils.formatCurrency(totalRevenue)}</td>
                 <td class="text-right">-</td>
                 <td>-</td>
             </tr>
         `;
-    },
-
-    showLoadingIndicator(sectionId) {
-        console.log('Showing loading indicator for section:', sectionId);
-        const section = document.getElementById(sectionId);
-        if (!section) {
-            console.error('Section not found:', sectionId);
-            return;
-        }
-
-        // Remove any existing loading indicator
-        this.hideLoadingIndicator(sectionId);
-
-        const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'loading-overlay';
-        loadingDiv.style.position = 'absolute';
-        loadingDiv.style.top = '0';
-        loadingDiv.style.left = '0';
-        loadingDiv.style.right = '0';
-        loadingDiv.style.bottom = '0';
-        loadingDiv.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-        loadingDiv.style.display = 'flex';
-        loadingDiv.style.flexDirection = 'column';
-        loadingDiv.style.alignItems = 'center';
-        loadingDiv.style.justifyContent = 'center';
-        loadingDiv.style.zIndex = '1000';
-        loadingDiv.innerHTML = `
-            <div class="spinner" style="width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-            <p style="margin-top: 10px; color: #333; font-size: 16px;">Loading menu items data...</p>
-        `;
-        section.style.position = 'relative';
-        section.appendChild(loadingDiv);
-    },
-
-    hideLoadingIndicator(sectionId) {
-        console.log('Hiding loading indicator for section:', sectionId);
-        const section = document.getElementById(sectionId);
-        if (!section) {
-            console.error('Section not found:', sectionId);
-            return;
-        }
-
-        const loadingDiv = section.querySelector('.loading-overlay');
-        if (loadingDiv) {
-            loadingDiv.remove();
-        }
     }
 };
 
