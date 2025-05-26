@@ -399,10 +399,8 @@ const UI = {
         this.hideLoadingIndicator(sectionId);
 
         const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'loading-overlay';
+        loadingDiv.className = '';
         loadingDiv.innerHTML = `
-            <div class="spinner" style="width: 40px; height: 40px; border: 4px solid var(--border-color); border-top: 4px solid var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite;"></div>
-            <p style="margin-top: 10px; color: var(--text-color); font-size: 16px; font-weight: 500;">Loading data...</p>
         `;
         section.style.position = 'relative';
         section.appendChild(loadingDiv);

@@ -693,7 +693,7 @@ th {
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    margin: 1rem 0;
+    margin-top: 1rem;
     background: var(--background-color);
     box-shadow: 0 1px 3px var(--shadow-color);
     border-radius: 8px;
@@ -730,35 +730,30 @@ th {
 #menuItemsTable td:nth-child(1) {
     width: 35%;
     min-width: 200px;
-    padding-left: 20px;
 }
 
 #menuItemsTable th:nth-child(2),
 #menuItemsTable td:nth-child(2) {
     width: 15%;
     text-align: right;
-    padding-right: 20px;
 }
 
 #menuItemsTable th:nth-child(3),
 #menuItemsTable td:nth-child(3) {
     width: 20%;
     text-align: right;
-    padding-right: 20px;
 }
 
 #menuItemsTable th:nth-child(4),
 #menuItemsTable td:nth-child(4) {
     width: 15%;
     text-align: right;
-    padding-right: 20px;
 }
 
 #menuItemsTable th:nth-child(5),
 #menuItemsTable td:nth-child(5) {
     width: 15%;
     text-align: left;
-    padding-right: 20px;
 }
 
 #menuItemsTable tr:last-child td {
@@ -769,11 +764,18 @@ th {
     background-color: var(--hover-color);
 }
 
+#menuItemsTable .text-right {
+    text-align: right;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 13px;
+    padding-right: 24px;
+}
+
 /* Menu item name column */
 #menuItemsTable td:first-child {
     font-weight: 500;
     color: var(--text-color);
-    text-align: left;
+    padding-left: 24px;
 }
 
 /* Numeric columns */
@@ -783,7 +785,6 @@ th {
     font-family: 'Roboto Mono', monospace;
     font-size: 13px;
     white-space: nowrap;
-    text-align: right;
 }
 
 /* Date column */
@@ -791,7 +792,7 @@ th {
     color: var(--text-color);
     opacity: 0.9;
     white-space: nowrap;
-    text-align: left;
+    padding-right: 24px;
 }
 
 /* Total row */
@@ -828,19 +829,8 @@ th {
     font-weight: 500;
 }
 
-/* Table container */
-.table-container {
-    width: 100%;
-    padding: 0;
-    margin: 0;
-}
-
 /* Responsive adjustments */
 @media (max-width: 768px) {
-    .table-container {
-        padding: 0;
-    }
-    
     #menuItemsTable {
         display: block;
         overflow-x: auto;
