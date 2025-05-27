@@ -313,6 +313,7 @@ async deleteBill(billNo) {
 
                     const existingItem = menuItemsMap.get(detail.menu_name) || {
                         name: detail.menu_name,
+                        branchName: bill.payment_status || '-', // Add branch name from bill summary
                         totalQuantity: 0,
                         totalRevenue: 0,
                         lastSoldDate: null
@@ -375,6 +376,7 @@ async deleteBill(billNo) {
 
                     const existingItem = menuItemsMap.get(detail.menu_name) || {
                         name: detail.menu_name,
+                        branchName: bill.branch_name || '-', // Add branch name from bill summary
                         totalQuantity: 0,
                         totalRevenue: 0,
                         lastSoldDate: null

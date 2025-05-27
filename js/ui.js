@@ -420,6 +420,7 @@ const UI = {
         }
     },
 
+    // for renderign the menu items
     renderMenuItems(items) {
         console.log('Rendering menu items:', items);
         
@@ -456,6 +457,7 @@ const UI = {
         const rows = items.map(item => `
             <tr>
                 <td>${item.name || '-'}</td>
+                <td>${item.branchName || '-'}</td>
                 <td class="text-right">${item.totalQuantity || 0}</td>
                 <td class="text-right">${Utils.formatCurrency(item.totalRevenue || 0)}</td>
                 <td class="text-right">${Utils.formatCurrency(item.averagePrice || 0)}</td>
@@ -470,6 +472,7 @@ const UI = {
         tbody.innerHTML = rows + `
             <tr>
                 <td>Total</td>
+                <td>-</td>
                 <td class="text-right">${totalQuantity}</td>
                 <td class="text-right">${Utils.formatCurrency(totalRevenue)}</td>
                 <td class="text-right">-</td>
