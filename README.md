@@ -1,4 +1,4 @@
-# 🧾 Dashboardd - Hotel Bill Summary Dashboard | DrukPOS
+# 🧾 Dashboardd - Hotel Bill Summary Dashboard | Legphel Hotel
 
 Welcome to the **Dashboardd** project, part of the [DrukPOS](https://github.com/CoderKinley/WebsiteDrukPOS.git) system. This dashboard provides a clean, responsive web interface that displays real-time billing summaries for hotel operations.
 
